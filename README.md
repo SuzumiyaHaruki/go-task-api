@@ -20,7 +20,16 @@
 
 ```text
 go-task-api/
-  cmd/server/          程序入口
+  cmd/server/
+    main.go            程序入口和 HTTP Server 启动
+    app.go             应用初始化和内存状态
+    routes.go          路由注册
+    models.go          请求、响应和业务模型
+    health_handler.go  健康检查接口
+    auth_handler.go    注册和登录接口
+    task_handler.go    任务 CRUD 接口
+    response.go        JSON 响应、请求解析和通用工具
+    middleware.go      请求日志中间件
   docs/                API 文档
 ```
 
