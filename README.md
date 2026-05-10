@@ -5,13 +5,12 @@
 ## 当前技术栈
 
 - Go
-- Go 标准库 `net/http`
+- Gin
 - 内存存储
 - Docker
 
 ## 后续计划
 
-- 使用 Gin 重构路由和接口处理
 - 使用 GORM 接入 MySQL
 - 使用 Redis 做缓存和登录状态管理
 - Docker Compose

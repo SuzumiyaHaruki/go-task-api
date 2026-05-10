@@ -1,3 +1,7 @@
+# docker-compose.yml 定义本地开发环境的服务编排。
+#
+# api 服务从当前项目构建镜像；mysql 提供任务 API 可用的关系型数据库；
+# redis 提供缓存或会话等扩展能力。数据卷 mysql_data 用于持久化数据库数据。
 services:
   api:
     build: .

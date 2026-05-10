@@ -1,12 +1,25 @@
+/*
+task_handler.go 实现任务管理相关 HTTP 接口。
+
+本文件包含任务的列表、创建、详情查询、更新和删除逻辑。
+任务数据暂存在应用内存 map 中，写操作需要携带登录后获得的演示 token。
+*/
 package main
 
 import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-func (a *app) listTasks(w http.ResponseWriter, r *http.Request) {
+/*
+listTasks 返回当前内存中的全部任务。
+
+它会在锁保护下复制任务 map 中的数据，并以数组形式返回。
+*/
+func (a *app) listTasks(c *gin.Context) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -15,23 +28,29 @@ func (a *app) listTasks(w http.ResponseWriter, r *http.Request) {
 		tasks = append(tasks, item)
 	}
 
-	writeOK(w, tasks)
+	writeOK(c, tasks)
 }
 
-func (a *app) createTask(w http.ResponseWriter, r *http.Request) {
-	if !hasDemoToken(r) {
-		writeError(w, http.StatusUnauthorized, "missing or invalid Authorization header")
+/*
+createTask 创建一条新任务。
+
+该接口要求请求携带演示 token，并校验任务标题不能为空。
+如果请求未提供状态，默认使用 todo；创建成功后会写入创建和更新时间。
+*/
+func (a *app) createTask(c *gin.Context) {
+	if !hasDemoToken(c) {
+		writeError(c, http.StatusUnauthorized, "missing or invalid Authorization header")
 		return
 	}
 
 	var req taskRequest
-	if !readJSON(w, r, &req) {
+	if !readJSON(c, &req) {
 		return
 	}
 
 	req.Title = strings.TrimSpace(req.Title)
 	if req.Title == "" {
-		writeError(w, http.StatusBadRequest, "title is required")
+		writeError(c, http.StatusBadRequest, "title is required")
 		return
 	}
 	if req.Status == "" {
@@ -52,11 +71,16 @@ func (a *app) createTask(w http.ResponseWriter, r *http.Request) {
 	a.tasks[item.ID] = item
 	a.mu.Unlock()
 
-	writeCreated(w, item)
+	writeCreated(c, item)
 }
 
-func (a *app) getTask(w http.ResponseWriter, r *http.Request) {
-	id, ok := parseID(w, r)
+/*
+getTask 根据路径 ID 查询单个任务。
+
+如果 ID 不合法会返回 400；如果任务不存在会返回 404。
+*/
+func (a *app) getTask(c *gin.Context) {
+	id, ok := parseID(c)
 	if !ok {
 		return
 	}
@@ -66,26 +90,32 @@ func (a *app) getTask(w http.ResponseWriter, r *http.Request) {
 	a.mu.Unlock()
 
 	if !exists {
-		writeError(w, http.StatusNotFound, "task not found")
+		writeError(c, http.StatusNotFound, "task not found")
 		return
 	}
 
-	writeOK(w, item)
+	writeOK(c, item)
 }
 
-func (a *app) updateTask(w http.ResponseWriter, r *http.Request) {
-	if !hasDemoToken(r) {
-		writeError(w, http.StatusUnauthorized, "missing or invalid Authorization header")
+/*
+updateTask 根据路径 ID 更新任务。
+
+该接口要求请求携带演示 token。请求体中非空的 title、content、status
+会覆盖原任务字段，并刷新 UpdatedAt。
+*/
+func (a *app) updateTask(c *gin.Context) {
+	if !hasDemoToken(c) {
+		writeError(c, http.StatusUnauthorized, "missing or invalid Authorization header")
 		return
 	}
 
-	id, ok := parseID(w, r)
+	id, ok := parseID(c)
 	if !ok {
 		return
 	}
 
 	var req taskRequest
-	if !readJSON(w, r, &req) {
+	if !readJSON(c, &req) {
 		return
 	}
 
@@ -94,7 +124,7 @@ func (a *app) updateTask(w http.ResponseWriter, r *http.Request) {
 
 	item, exists := a.tasks[id]
 	if !exists {
-		writeError(w, http.StatusNotFound, "task not found")
+		writeError(c, http.StatusNotFound, "task not found")
 		return
 	}
 
@@ -110,16 +140,21 @@ func (a *app) updateTask(w http.ResponseWriter, r *http.Request) {
 	item.UpdatedAt = time.Now()
 	a.tasks[id] = item
 
-	writeOK(w, item)
+	writeOK(c, item)
 }
 
-func (a *app) deleteTask(w http.ResponseWriter, r *http.Request) {
-	if !hasDemoToken(r) {
-		writeError(w, http.StatusUnauthorized, "missing or invalid Authorization header")
+/*
+deleteTask 根据路径 ID 删除任务。
+
+该接口要求请求携带演示 token。删除成功后返回被删除任务的 ID。
+*/
+func (a *app) deleteTask(c *gin.Context) {
+	if !hasDemoToken(c) {
+		writeError(c, http.StatusUnauthorized, "missing or invalid Authorization header")
 		return
 	}
 
-	id, ok := parseID(w, r)
+	id, ok := parseID(c)
 	if !ok {
 		return
 	}
@@ -128,10 +163,10 @@ func (a *app) deleteTask(w http.ResponseWriter, r *http.Request) {
 	defer a.mu.Unlock()
 
 	if _, exists := a.tasks[id]; !exists {
-		writeError(w, http.StatusNotFound, "task not found")
+		writeError(c, http.StatusNotFound, "task not found")
 		return
 	}
 	delete(a.tasks, id)
 
-	writeOK(w, map[string]int64{"deleted_id": id})
+	writeOK(c, map[string]int64{"deleted_id": id})
 }
