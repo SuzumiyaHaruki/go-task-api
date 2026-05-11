@@ -1,7 +1,7 @@
 /*
 routes.go 集中注册 HTTP 路由。
 
-本文件把健康检查、认证接口和任务管理接口挂载到 Gin 路由器上，
+本文件把健康检查、认证接口、用户资料接口和任务管理接口挂载到 Gin 路由器上，
 统一维护 API 版本前缀和各资源路径。
 */
 package main
@@ -10,6 +10,7 @@ package main
 routes 注册应用所有路由。
 
 /health 用于健康检查；/api/v1/auth 下提供注册和登录；
+/api/v1/users 下提供当前用户资料修改；
 /api/v1/tasks 下提供任务列表、创建、详情、更新和删除接口。
 */
 func (a *app) routes() {
@@ -21,6 +22,11 @@ func (a *app) routes() {
 		{
 			auth.POST("/register", a.register)
 			auth.POST("/login", a.login)
+		}
+
+		users := api.Group("/users")
+		{
+			users.PUT("/me", a.updateCurrentUser)
 		}
 
 		tasks := api.Group("/tasks")

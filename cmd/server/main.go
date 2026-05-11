@@ -14,12 +14,15 @@ import (
 main 启动 go-task-api 服务。
 
 它会从 APP_PORT 环境变量读取监听端口，未配置时默认使用 8080，
-然后创建应用并在对应端口启动 HTTP 服务器。
+然后创建应用、连接数据库，并在对应端口启动 HTTP 服务器。
 */
 func main() {
 	port := getenv("APP_PORT", "8080")
 
-	a := newApp()
+	a, err := newApp()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	log.Printf("go-task-api listening on http://localhost:%s", port)
 	if err := a.router.Run(":" + port); err != nil {

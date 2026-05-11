@@ -1,7 +1,7 @@
 /*
 response.go 提供 HTTP 请求和响应辅助函数。
 
-本文件负责读取 JSON 请求体、解析路径参数、检查演示 token，
+本文件负责读取 JSON 请求体、解析路径参数、解析演示 token，
 并用统一的 apiResponse 格式写出成功或错误响应。同时也提供读取环境变量
 并设置默认值的工具函数。
 */
@@ -48,14 +48,27 @@ func parseID(c *gin.Context) (int64, bool) {
 }
 
 /*
-hasDemoToken 检查请求是否携带演示用 Bearer Token。
+parseDemoUserID 从演示用 Bearer Token 中解析当前用户 ID。
 
-当前实现只校验 Authorization 请求头是否以 "Bearer demo-token-" 开头，
-适合示例项目使用，不等同于生产环境的 JWT 校验。
+当前 token 格式为 "Bearer demo-token-{userID}"，例如登录接口返回的
+"Bearer demo-token-1" 会解析出用户 ID 1。该实现只适合示例项目使用，
+不等同于生产环境的 JWT 鉴权。
 */
-func hasDemoToken(c *gin.Context) bool {
+func parseDemoUserID(c *gin.Context) (int64, bool) {
 	value := c.GetHeader("Authorization")
-	return strings.HasPrefix(value, "Bearer demo-token-")
+	const prefix = "Bearer demo-token-"
+	if !strings.HasPrefix(value, prefix) {
+		writeError(c, http.StatusUnauthorized, "missing or invalid Authorization header")
+		return 0, false
+	}
+
+	id, err := strconv.ParseInt(strings.TrimPrefix(value, prefix), 10, 64)
+	if err != nil || id <= 0 {
+		writeError(c, http.StatusUnauthorized, "missing or invalid Authorization header")
+		return 0, false
+	}
+
+	return id, true
 }
 
 /*

@@ -43,6 +43,22 @@ Login response:
 }
 ```
 
+## Users
+
+- `PUT /api/v1/users/me`
+
+Update current user request:
+
+```json
+{
+  "username": "alice_new",
+  "password": "abcdef"
+}
+```
+
+The request requires the demo token returned by login. `username` and
+`password` are both optional, but at least one field must be provided.
+
 ## Tasks
 
 - `POST /api/v1/tasks`
@@ -50,6 +66,9 @@ Login response:
 - `GET /api/v1/tasks/:id`
 - `PUT /api/v1/tasks/:id`
 - `DELETE /api/v1/tasks/:id`
+
+All task APIs require the demo token returned by login. A user can only list,
+read, update, and delete their own tasks.
 
 Create request:
 
@@ -61,7 +80,7 @@ Create request:
 }
 ```
 
-Protected task write APIs currently accept demo tokens:
+Task APIs currently accept demo tokens:
 
 ```text
 Authorization: Bearer demo-token-1
